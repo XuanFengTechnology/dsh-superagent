@@ -18,4 +18,6 @@ Releases run the platform matrix before publication. The matrix validates the co
 
 Daily upstream checks compare `upstream.json` with the official commit and DSH latest. A change opens one deduplicated review issue. It does not auto-merge or auto-deploy. Review changes in a branch, run checks and update the lock only after acceptance.
 
+Windows acceptance on 2026-11-01 used the installed official DSH desktop CLI 0.2.1-rc.5 with two temporary private DSH homes pointing to the same plugin installation. Both orchestrators became ready, used distinct databases and sessions, and pausing/stopping the first left the second ready. No real employee or model task was used; this validates host mounting and process/state separation, not business execution or enrollment.
+
 Before updating a running employee, wait for an idle maintenance boundary, back up its database, and retain its private identity/history. A database migration may make the old binary incompatible; restore the pre-upgrade backup when required. An intentional stop or unresolved tool result must never be bypassed by an updater.
