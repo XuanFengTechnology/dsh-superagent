@@ -41,6 +41,10 @@ export class Setup {
     return this.resolved
   }
   configured(): boolean { return this.resolved !== undefined }
+  /** Reject unsupported standalone settings before a management save commits. */
+  validateSettings(settings: Settings): void {
+    if (this.host.machine.standalone) this.checkStandalone(settings)
+  }
   /** Resolve deployment accounts and apply the worker environment, recording `SetupError` failures in `problem`/`feishuProblem` and rethrowing unexpected errors. */
   async run(settings: Settings): Promise<boolean> {
     try { this.resolved = await this.resolve(settings); return true }
