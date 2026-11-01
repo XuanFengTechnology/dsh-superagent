@@ -32,7 +32,7 @@ export class Setup {
   private restoreEnvironment?: () => void
   constructor(private readonly host: SetupHost) {
     this.path = withoutDirectory(process.env.PATH ?? '', workerBin(host.machine.stateDir))
-    this.variables = agentVariables(host.machine.stateDir)
+    this.variables = host.machine.standalone ? {} : agentVariables(host.machine.stateDir)
   }
   /** Host command environment with agent git variables applied and the worker shim directory excluded from PATH. */
   get commandEnvironment(): Record<string, string | undefined> { return { ...this.variables, PATH: this.path } }
@@ -60,11 +60,19 @@ export class Setup {
   /** Verify account CLIs for a modified source block before saving, ignoring setup errors belonging to other blocks. */
   async checkAccounts(block: SettingsBlock, settings: Settings): Promise<void> {
     const { machine } = this.host
+    if (machine.standalone) {
+      this.checkStandalone(settings)
+      return
+    }
     const check = block === 'source:feishu' ? resolveFeishuBot(machine, settings.sources.feishu?.config, this.probe())
       : resolveDeployment(machine, settings.sources.github?.config, this.probe())
     await check.catch((error: unknown) => { if (!(error instanceof SetupError) || error.place === block.slice(7)) throw error })
   }
   async blockCommands(blocked: readonly string[]): Promise<void> {
+    if (this.host.machine.standalone) {
+      if (blocked.length) throw new SetupError('environmentFailed', { output: 'Standalone mode has no command shims; use host permissions.' })
+      return
+    }
     if (this.resolved) await writeEnvironment(this.resolved, blocked)
   }
   restore(): void { this.restoreEnvironment?.(); this.restoreEnvironment = undefined }
@@ -75,6 +83,12 @@ export class Setup {
   }
   private async resolve(settings: Settings): Promise<Deployment> {
     const { context, machine, lifetime } = this.host
+    if (machine.standalone) {
+      this.checkStandalone(settings)
+      this.problem = undefined
+      this.feishuProblem = undefined
+      return { ...machine, repository: '', github: { cli: '', login: '', noreply: '' } }
+    }
     const probe = this.probe()
     const deployment = await resolveDeployment(machine, settings.sources.github?.config, probe)
     const feishu = await resolveFeishuBot(machine, settings.sources.feishu?.config, probe).catch((error: unknown) => {
@@ -95,5 +109,10 @@ export class Setup {
       machineProblem(error)
     })
     return resolved
+  }
+  private checkStandalone(settings: Settings): void {
+    if (settings.sources.github?.enabled || settings.sources.feishu?.enabled || settings.executor.blockedCommands.length) {
+      throw new SetupError('environmentFailed', { output: 'Standalone mode requires GitHub/Feishu Sources off and no blockedCommands; source adapters and host permissions own these boundaries.' })
+    }
   }
 }

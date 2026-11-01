@@ -1,0 +1,13 @@
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const upstream = JSON.parse(readFileSync('upstream.json', 'utf8'));
+const target = process.env.RELEASE_TARGET;
+const targets = ['windows-amd64', 'linux-amd64', 'linux-arm64', 'macos-amd64', 'macos-arm64'];
+if (!targets.includes(target)) throw new Error('Unknown release target');
+if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${pkg.version}`) throw new Error('Tag and package version differ');
+const files = readdirSync('.artifacts/release').filter(name => name.endsWith('.tgz'));
+if (files.length !== 1) throw new Error('Expected exactly one packed plugin');
+const filename = files[0];
+const data = readFileSync(`.artifacts/release/${filename}`);
+writeFileSync(`.artifacts/release/manifest-${target}.json`, JSON.stringify({ schema_version: 1, version: pkg.version, target, dsh: upstream.dsh, node: process.version, upstream_commit: upstream.commit, source_commit: process.env.GITHUB_SHA ?? null, filename, size: data.length, sha256: createHash('sha256').update(data).digest('hex'), tests: 'core-suite-and-built-extension-smoke', limitations: ['Not an employee enrollment adapter', 'Desktop/native host integration requires separate acceptance'] }, null, 2) + '\n');

@@ -1,0 +1,11 @@
+# Add the bundle first, then apply this patch to a NEW dedicated employee profile.
+# Keep state outside the shared plugin installation. Each employee needs its own DSH_HOME.
+- id: dsh-superagent
+  config:
+    stateDir: /absolute/private/employee/superagent
+    standalone: true
+- id: dsh-superagent-github
+  disabled: true
+- id: dsh-superagent-feishu
+  disabled: true
+# Register an out-of-tree Source adapter separately. Standalone core alone does not receive platform messages.
