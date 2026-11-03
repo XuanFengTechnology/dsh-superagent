@@ -2,7 +2,7 @@
   "name": "dsh-superagent",
   "author": "DeepSeek Harness Team <team@dsh.dev>",
   "license": "MIT",
-  "version": "0.1.0-xf.3",
+  "version": "0.1.0-xf.4",
   "private": true,
   "description": "A DSH (DeepSeek Harness) task engine with repository and standalone profiles: authorized requests become Tickets executed in isolated Sessions, with source-specific identity and business policy supplied by trusted extensions.",
   "type": "module",

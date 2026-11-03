@@ -408,6 +408,7 @@ Some generic modules still refer directly to GitHub or Feishu:
 | --- | --- |
 | `tests/standalone.spec.ts` | Native absolute paths and standalone source deployment without GitHub |
 | `tests/core-engine.spec.ts` | Domain rules on in-memory repositories: receiving, Eval, fan-out, resume and stop, interrupted Assignments, the pause, Policy changes, reports and outcomes, attaching, replies, failed deliveries and dismissed problems |
+| `tests/agent-participants.spec.ts` | Authenticated agent direct/group admission, real identity, acknowledgements, replies, follow-ups, attention, resume, stop, scope and notification-bot separation |
 | `tests/stage.spec.ts` | The Ticket stages, row by row |
 | `tests/policy.spec.ts` | Source scope, the gate, the admission table, Mandate revalidation, the Policy version, settings migrations and assessment outcomes |
 | `tests/registry.spec.ts` | `SourceRegistry`: instances, validation, Policy parts, Channels and Thread context |

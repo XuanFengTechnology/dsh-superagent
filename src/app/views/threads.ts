@@ -1,5 +1,5 @@
 /** Thread list, timeline detail, cross-entity search, and decision list views. */
-import { threadKey, type Thread, type Ticket, type Trigger } from '../../core/index.ts'
+import { isParticipant, threadKey, type Thread, type Ticket, type Trigger } from '../../core/index.ts'
 import type { ThreadFilter } from '../api.ts'
 import type { TextCache } from '../cache.ts'
 import { awaitingEval, channelLink, dayAgo, decisionView, newestFirst, page, snapshot, threadSummary, threadTitle, ticketLine,
@@ -83,7 +83,7 @@ export function search(host: ViewHost, query: string, links: Pick<TextCache, 'en
     const filtered = home ? {} : { filtered: store.triggers.disposition(trigger.id)?.filtered ?? '' }
     return { ...row, threadTitle: home ? threadTitle(store, home) : undefined, ...filtered }
   }
-  const items = [...found.values()].filter(trigger => trigger.human || !shownThreads.has(threadKey(trigger.threads[0]!)))
+  const items = [...found.values()].filter(trigger => isParticipant(trigger) || !shownThreads.has(threadKey(trigger.threads[0]!)))
   return { tickets, items: items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 20).map(item), threads }
 }
 export type SearchView = ReturnType<typeof search>

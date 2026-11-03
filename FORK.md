@@ -1,5 +1,9 @@
 # 玄凤科技 Superagent 基座
 
+## 0.1.0-xf.4: authenticated agent communication
+
+Trusted Sources can declare `human: false, participant: 'agent'` without treating a digital colleague as a notification bot or impersonating a person. The complete admission, reply and follow-up lifecycle preserves source scope, deduplication, pause and explicit stops. `SOURCE_PARTICIPANT_API = 1` lets adapters reject incompatible pairings before readiness. Standalone prompts preserve this distinction and avoid acknowledgement loops. See `docs/009-agent-participants.md`; its regression suite and built extension checks are release requirements. Production acceptance remains machine-specific.
+
 This fork retains the upstream MIT license and DeepSeek Harness Team attribution. Original: https://github.com/deepseek-ai/dsh-superagent-prototype . Local adaptations Copyright (c) 2026 玄凤科技.
 
 ## Scope

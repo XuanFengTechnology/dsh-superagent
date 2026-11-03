@@ -27,7 +27,7 @@ export function executorTools(host: ExecutorToolsHost, ticket: Ticket): Tool[] {
       true, (resource, offset, limit, signal) => readResource(host.resources, resource, offset, limit, ticketId, signal)),
     tool({
       name: 'orchestrator_ack',
-      description: 'Acknowledge one original human request before substantial work, as the replies section says; it posts as a reply to that message.',
+      description: 'Acknowledge one original participant request before substantial work, as the replies section says; it posts as a reply to that message.',
       schema: z.object({
         trigger_id: z.string(),
         text: AcknowledgementSchema.describe(`At most ${IM_WORDS} words; Markdown is supported.`),
@@ -78,9 +78,9 @@ export function executorTools(host: ExecutorToolsHost, ticket: Ticket): Tool[] {
         state: z.enum(['progress', 'ready', 'blocked', 'failed', 'dropped']),
         summary: z.string().min(1),
         human_action: z.string().trim().min(1).max(1000).nullish().describe('One concrete question for a person, also with state=progress; omit to keep the pending one, null to clear it.'),
-        question_for_trigger_id: z.string().optional().describe('With human_action: the human message that raised the question, which is asked where that person wrote.'),
+        question_for_trigger_id: z.string().optional().describe('With human_action: the participant message that raised the question, which is asked where that person wrote.'),
         pr_number: z.number().int().positive().nullish().describe(`The ticket's PR: its source PR, or one by ${host.github.deployment.github.login} from a branch named after this ticket (DSH_SUPERAGENT_NAME).`),
-        reply_to_trigger_id: z.string().optional().describe('The explicit human question this report answers; never for ordinary progress.'),
+        reply_to_trigger_id: z.string().optional().describe('The explicit participant question this report answers; never for ordinary progress.'),
       }).strict(),
       execute: async (args, signal) => {
         const current = host.store.tickets.get(ticketId)

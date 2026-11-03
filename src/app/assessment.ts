@@ -193,7 +193,7 @@ export class MasterAssessor implements Assessor {
       const shown = new Map(context.window.entries.map(entry => [entry.message.id, entry]))
       const at = context.messages.findIndex(message => message.id === source?.messageId)
       const messages = context.messages.map((message, index) => {
-        const author = { id: message.id, from: message.from, ...message.bot ? { bot: true } : {} }
+        const author = { id: message.id, from: message.from, ...message.bot ? { bot: true } : {}, ...message.participant ? { participant: message.participant } : {} }
         if (message.deleted) return { ...author, deleted: true }
         if (!shown.has(message.id)) return { ...author, preview: message.text.replace(/\s+/g, ' ').slice(0, STUB_CHARS) }
         // The trigger's own text is already included once at the top level.

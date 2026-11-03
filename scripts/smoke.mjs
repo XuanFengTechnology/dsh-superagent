@@ -1,11 +1,12 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Store, SettingsSchema, Engine, record } from '../lib/extension.js';
+import { Store, SettingsSchema, Engine, record, SOURCE_PARTICIPANT_API, isParticipant } from '../lib/extension.js';
 import { Config } from '../lib/index.js';
 const directory = mkdtempSync(join(tmpdir(), 'superagent-smoke-'));
 let store;
 try {
+  if (SOURCE_PARTICIPANT_API !== 1 || !isParticipant({ human: false, participant: 'agent' }) || isParticipant({ human: false })) throw new Error('Agent participant contract missing');
   Config({ stateDir: directory, standalone: true });
   store = new Store(join(directory, 'orchestrator.sqlite'));
   store.saveSettings(SettingsSchema.parse({}));

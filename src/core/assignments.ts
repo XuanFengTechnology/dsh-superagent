@@ -1,7 +1,7 @@
 /** What the Executor and its workers report about the Assignments that run tickets. */
 import { key } from './ids.ts'
 import { UserError } from './errors.ts'
-import { latestAssignment, liveTicket, runningAssignment } from './model.ts'
+import { isParticipant, latestAssignment, liveTicket, runningAssignment } from './model.ts'
 import type { ReportState, Ticket } from './model.ts'
 import { EnginePart, type EngineOptions } from './part.ts'
 import type { Replies } from './replies.ts'
@@ -103,7 +103,7 @@ export class Assignments extends EnginePart {
     if (report.askedBy && !report.question) throw new UserError('askerWithoutQuestion')
     const person = (id: string, channel: boolean) => {
       const trigger = this.repo.triggers.get(id)
-      return !!trigger?.human && (!channel || !!trigger.channel) && this.reaches(ticket, trigger, false)
+      return !!trigger && isParticipant(trigger) && (!channel || !!trigger.channel) && this.reaches(ticket, trigger, false)
     }
     if (report.askedBy && !person(report.askedBy, true)) throw new UserError('notAsker')
     if (report.answers && !person(report.answers, false)) throw new UserError('notAnswerable')

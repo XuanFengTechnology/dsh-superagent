@@ -1,6 +1,6 @@
 /** Shared view projections for triggers, tickets, threads, decisions, and channel links. */
 import { z } from 'zod'
-import { canRetry, followupOwners, latestReport, liveTicket, settled, threadKey, ticketStage, type ActorRef, type ChannelRef, type Decision,
+import { isParticipant, canRetry, followupOwners, latestReport, liveTicket, settled, threadKey, ticketStage, type ActorRef, type ChannelRef, type Decision,
   type DecisionKind, type Thread, type ThreadFacts, type Ticket, type TicketStage, type Trigger } from '../../core/index.ts'
 import { allowedSender, listedBot } from '../../policy.ts'
 import type { ChannelLink, Localized } from '../../sources/kind.ts'
@@ -95,7 +95,7 @@ export function triggerView(view: Snapshot, trigger: Trigger, threadDecisions?: 
   const decided = !!disposition?.acked?.length || (!!decision && settled(decision))
   const unjudged = !!disposition?.filtered || decision?.kind === 'unavailable' || delivered || (!!disposition?.fanout.length && !decided)
     || (!!decision && !decided)
-  const requeue = trigger.human && !queued && !evaluating && unjudged
+  const requeue = isParticipant(trigger) && !queued && !evaluating && unjudged
   return { id: trigger.id, source: trigger.source, actor: view.actor(trigger.actor, trigger.human), human: trigger.human, at: trigger.at,
     text: plain(readable(trigger.text), true),
     preview: preview(trigger.text), url: trigger.url, threads: trigger.threads.map(threadKey), actions: { requeue },

@@ -4,7 +4,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { mkdir, rmdir, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { key, latestAssignment, latestReport, liveTicket, runningAssignment, threadKey, waitsForPerson } from '../core/index.ts'
+import { isParticipant, key, latestAssignment, latestReport, liveTicket, runningAssignment, threadKey, waitsForPerson } from '../core/index.ts'
 import type { AssessmentOutcome, Assignment, EngineForExecutor, Execution, Executor, Mandate, PolicyEffect, Ticket, TicketInput, Trigger }
   from '../core/index.ts'
 import type { Machine } from '../deployment.ts'
@@ -35,7 +35,7 @@ const SHUTDOWN_STOP_MS = 10_000
 /** How long a worker that goes on after a passing failure waits for a worker slot, or for processing to resume, between looks. */
 const SLOT_WAIT_MS = 5000
 /** True when an input comes from a person (a non-context human trigger or a direct text input such as a status request). */
-const fromPerson = (input?: TicketInput): boolean => input?.kind === 'trigger' ? !!input.human && !input.context : input?.kind === 'text'
+const fromPerson = (input?: TicketInput): boolean => input?.kind === 'trigger' ? isParticipant(input) && !input.context : input?.kind === 'text'
 /**
  * Internal error thrown when a ticket's workspace prepare command fails during launch.
  * DshExecutor catches it to mark the ticket failed immediately rather than retrying automatically, because an existing directory counts as prepared and an automatic retry would treat whatever a failed prepare command left behind in the directory as a prepared workspace.

@@ -28,6 +28,8 @@ export interface Trigger {
   actor: ActorRef
   /** Source-declared: the event was written by a person rather than a bot, CI, or this agent. */
   human: boolean
+  /** Trusted Source assertion: an authenticated conversational agent, distinct from notification bots/CI. Never copy from message text or meta. */
+  participant?: 'agent'
   /** Source-declared: the sender addressed the agent, by mentioning it or in a direct message to it. */
   addressed?: 'mention' | 'direct'
   at: string
@@ -37,6 +39,10 @@ export interface Trigger {
   /** Source-native details for adapters; the core never interprets them. */
   meta: Record<string, unknown>
 }
+
+/** Conversation eligibility, not identity or authorization. Source scope, admission and mandate checks still apply. */
+export const isParticipant = (value?: { human?: boolean; participant?: 'agent' }): boolean =>
+  value?.human === true || value?.participant === 'agent'
 
 /** Where a trigger went after intake; it grants nothing, but decides who decides a person's follow-up (see `followupOwners`). */
 export interface TriggerDisposition {
@@ -72,8 +78,8 @@ export interface FollowupRecords {
  * an Eval holds it, which an earlier version may have queued. While a ticket owns it, the message goes to no Eval, and the
  * main Session may only stop the work on it.
  */
-export function followupOwners(trigger: Pick<Trigger, 'id' | 'human' | 'threads'>, records: FollowupRecords): string[] {
-  if (!trigger.human) return []
+export function followupOwners(trigger: Pick<Trigger, 'id' | 'human' | 'participant' | 'threads'>, records: FollowupRecords): string[] {
+  if (!isParticipant(trigger)) return []
   const disposition = records.triggers.disposition(trigger.id)
   if (!disposition || disposition.requeued) return []
   // The disposition alone rules most messages out, so a Thread or a ticket is read only for one that may have an owner.
@@ -234,7 +240,7 @@ export interface Assignment {
 
 export type TicketInput =
   /** A Trigger on one of its Threads, or attached to it; `human` when a person wrote it. */
-  | { id: string; kind: 'trigger'; triggerId: string; at: string; note?: string; human?: true
+  | { id: string; kind: 'trigger'; triggerId: string; at: string; note?: string; human?: true; participant?: 'agent'
     /** It reached the ticket only on a Thread its Executor follows for context. */
     context?: true
     /**
@@ -349,5 +355,5 @@ export function readUntil(ticket: Pick<Ticket, 'assignments'>, progress = true):
 export function waitsForPerson(ticket: Ticket): boolean {
   const report = latestAssignment(ticket)?.report
   if (report?.state !== 'blocked' && report?.state !== 'failed') return false
-  return !ticket.inputs.some(input => input.kind === 'trigger' && input.human && !input.context && input.at > report.at)
+  return !ticket.inputs.some(input => input.kind === 'trigger' && isParticipant(input) && !input.context && input.at > report.at)
 }

@@ -1,7 +1,7 @@
 /** Tickets: their lifecycle from an accept to their end, their Subscriptions and their Inputs. */
 import { key } from './ids.ts'
 import { UserError } from './errors.ts'
-import { latestAssignment, latestReport, liveTicket, readUntil, runningAssignment, settled, threadKey, waitsForPerson } from './model.ts'
+import { isParticipant, latestAssignment, latestReport, liveTicket, readUntil, runningAssignment, settled, threadKey, waitsForPerson } from './model.ts'
 import type { Assignment, ChannelRef, Evaluation, Follow, Mandate, PolicyEffect, ThreadRef, Ticket, TicketEndBy, TicketInput, TicketOutcome,
   Trigger, TriggerDisposition } from './model.ts'
 import type { AssessmentOutcome } from './ports.ts'
@@ -11,7 +11,7 @@ import { canRetry } from './stage.ts'
 
 const sameChannel = (a: ChannelRef, b: ChannelRef): boolean => JSON.stringify(a) === JSON.stringify(b)
 /** Whether an Input is a message no person wrote, such as CI's, a bot's, or the main Session's note. */
-export const automatic = (input: TicketInput | undefined): boolean => input?.kind === 'note' || (input?.kind === 'trigger' && !input.human)
+export const automatic = (input: TicketInput | undefined): boolean => input?.kind === 'note' || (input?.kind === 'trigger' && !isParticipant(input))
 /**
  * Whether a ticket's worker read a Trigger Input before `until`, its latest report or turn end: its Session took the message
  * into a step before then. One delivered before reads were recorded counts as read once it reached the worker by then.
@@ -131,7 +131,7 @@ export class Tickets extends EnginePart {
     const existing = ticket.inputs.find(input => input.id === id)
     const at = this.now()
     const input = (inputId: string): TicketInput => ({ id: inputId, kind: 'trigger', triggerId: trigger.id, at, ...(note ? { note } : {}),
-      ...trigger.human ? { human: true } : {} })
+      ...trigger.human ? { human: true } : {}, ...trigger.participant ? { participant: trigger.participant } : {} })
     if (existing?.kind !== 'trigger') this.addInput(ticket, input(id))
     else if (note && ticket.undelivered.includes(id)) { existing.note = note; ticket.updatedAt = at; this.repo.tickets.save(ticket) }
     // A person sent it to Eval, or the ticket let it go before its worker took it up, read it for context only, or ended after
@@ -256,7 +256,7 @@ export class Tickets extends EnginePart {
     if (policy.paused) return
     if (!policy.revalidate(ticket.mandate)) { this.refuse(ticket); return }
     // Only a human's message resumes an ended ticket; bot/CI triggers wait alongside inputs from before the ticket ended.
-    const first = ticket.undelivered.map(id => ticket.inputs.find(input => input.id === id)).find(input => input?.kind === 'trigger' && input.human)
+    const first = ticket.undelivered.map(id => ticket.inputs.find(input => input.id === id)).find(input => input?.kind === 'trigger' && isParticipant(input))
     if (first?.kind !== 'trigger') return
     const at = this.now()
     delete ticket.ended; ticket.updatedAt = at

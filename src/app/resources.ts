@@ -109,7 +109,7 @@ async function sourcePage(read: Read, source: string, fetch: () => Promise<unkno
   return text(read, body)
 }
 const THREAD_DECISIONS = 5
-const triggerLine = (trigger: Trigger) => ({ trigger_id: trigger.id, actor: trigger.actor.id, human: trigger.human, at: trigger.at,
+const triggerLine = (trigger: Trigger) => ({ trigger_id: trigger.id, actor: trigger.actor.id, human: trigger.human, ...trigger.participant ? { participant: trigger.participant } : {}, at: trigger.at,
   preview: preview(trigger.text), chars: trigger.text.length, read: `trigger/${trigger.id}` })
 async function transcript(host: ResourceHost, ticketId: string) {
   return (await host.context.sessionController.inspect(workerSessionId(ticketId) as SessionId)).events

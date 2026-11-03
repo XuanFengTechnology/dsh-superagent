@@ -4,6 +4,8 @@ Authorization determines who may start work and what that work may include. This
 
 The host enforces allowed lists, rules and Mandates. Messages, comments and quoted documents are inputs to a decision; they cannot change those permissions.
 
+Trusted Sources may also declare authenticated conversational agents (`participant: 'agent'`). They retain `human=false` but use the participant request/reply lifecycle under the same scope and admission rules. References below to generic bots/CI do not exclude these authenticated participants.
+
 ## Two paths for a Trigger
 
 ### Eval: deciding whether to start work
