@@ -5,6 +5,8 @@ import type { Deployment } from '../deployment.ts'
 import type { SourceRegistry } from './registry.ts'
 import type { SetupProblem } from '../setup.ts'
 import type { Family, Key } from '../kv.ts'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Tool } from '../app/tools/tool.ts'
 import { fill } from '../infra/text.ts'
 
 /** Fixed English health templates (`{name}` placeholders); the panel localizes each `code` in the interface language. */
@@ -24,9 +26,12 @@ export interface SourceHost {
   readonly sources: SourceRegistry
   /** Trusted installed adapters contribute current identity/conduct to the complete model prompt. Never expose to message input. */
   registerPromptSection?(name: string, render: () => string): () => void
+  /** Trusted installed Source tools, bound locally to current/future managed sessions. Disposal revokes them. */
+  registerSessionTools?(namespace: string, factory: SourceSessionTools): () => void
   /** Returns the context for one Source kind; its `report` writes only the health entries declared by the kind. */
   context(kind: { kind: string; health: readonly string[] }): SourceContext
 }
+export type SourceSessionTools = (agent: Agent, ticket?: Ticket) => Tool[]
 /** Display label, URL, and facts (`null` removes a fact) that a Source publishes on a Thread. */
 export interface ThreadDescription { label?: string; url?: string; facts?: Record<string, ThreadFact | null> }
 /** Application capabilities exposed to a Source kind for reading state, ingesting triggers, managing threads/tickets, and reporting health. */

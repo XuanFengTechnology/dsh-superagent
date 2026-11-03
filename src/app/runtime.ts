@@ -77,6 +77,7 @@ export class Runtime extends Service implements SourceHost {
   readonly masterId: string
   private readonly promptSections = new SourcePromptSections()
   registerPromptSection(name: string, render: () => string): () => void { return this.promptSections.register(name, render) }
+  registerSessionTools(...args: Parameters<Sessions['registerSessionTools']>): () => void { return this.sessions.registerSessionTools(...args) }
   private readonly sourceLinks = new TextCache(200_000)
   private readonly stopped = new AbortController()
   private readonly disposers: (() => void)[] = []

@@ -19,6 +19,7 @@ import { SKILL_PREFIX, type PromptVersion, type Prompts } from './prompts.ts'
 import type { Store } from './store.ts'
 import { KV } from '../kv.ts'
 import type { RegisterTool, Tool } from './tools/tool.ts'
+import type { SourceSessionTools } from '../sources/host.ts'
 
 /** Host dependencies used by `Sessions`. */
 export interface SessionsHost {
@@ -46,7 +47,7 @@ export interface SessionsHost {
  * What Sessions registered for an agent it decorated: the releases of its prompt section, tools and skill scope, the scope
  * its skills are registered in, and the skills of one prompt revision; for a worker's subagent, only its tool limits.
  */
-interface SessionBinding { disposers: (() => void)[]; scope?: Context; skills?: { revision: number; dispose: () => void }; subagent?: true }
+interface SessionBinding { disposers: (() => void)[]; scope?: Context; skills?: { revision: number; dispose: () => void }; subagent?: true; sourceTools?: Map<string, () => void> }
 
 /** The agent presets Executor Sessions and the main Session are created with, which the bundle's patch defines. */
 export const WORKER_PRESET = 'dsh-superagent-worker', ROUTER_PRESET = 'dsh-superagent-router'
@@ -218,6 +219,38 @@ export class Sessions {
         execute: (args, execution) => execute(schema.parse(args), execution.signal) }))
     }
   }
+  private readonly sourceTools = new Map<string, SourceSessionTools>()
+  /** Source tools are local, like core tools, so inherited work-tool restrictions cannot silently hide them. */
+  registerSessionTools(namespace: string, factory: SourceSessionTools): () => void {
+    if (!/^[a-z][a-z0-9]*$/.test(namespace) || namespace === 'orchestrator' || this.sourceTools.has(namespace))
+      throw new Error('Invalid or duplicate Source tool namespace')
+    this.sourceTools.set(namespace, factory)
+    const dispose = () => {
+      if (this.sourceTools.get(namespace) !== factory) return
+      this.sourceTools.delete(namespace)
+      for (const binding of this.bindings.values()) binding.sourceTools?.get(namespace)?.()
+    }
+    try {
+      for (const [agent, binding] of this.bindings) if (!binding.subagent) this.bindSourceTools(agent, binding, namespace, factory)
+    } catch (error) { dispose(); throw error }
+    return dispose
+  }
+  private bindSourceTools(agent: Agent, binding: SessionBinding, namespace: string, factory: SourceSessionTools): void {
+    binding.sourceTools ??= new Map()
+    if (binding.sourceTools.has(namespace)) return
+    const group: SessionBinding = { disposers: [] }
+    const dispose = () => { for (const release of group.disposers.splice(0).reverse()) release(); binding.sourceTools?.delete(namespace) }
+    binding.sourceTools.set(namespace, dispose)
+    try {
+      const register = this.registerTool(agent, group), names = new Set<string>()
+      for (const tool of factory(agent, this.ticketOf(agent))) {
+        if (!tool.name.startsWith(`${namespace}_`) || names.has(tool.name)) throw new Error('Source tool names must be unique and namespaced')
+        names.add(tool.name)
+        register(tool.name, tool.description, tool.schema, tool.execute)
+      }
+    } catch (error) { dispose(); throw error }
+    binding.disposers.push(dispose)
+  }
   /** Returns `sessionId`'s active model-budget retry state (`{ model_retry }`) for status listings, or `{}` when not waiting on one. */
   modelRetry(sessionId: string | undefined) {
     const retry = sessionId ? this.retryHealth.get(sessionId) : undefined
@@ -267,6 +300,7 @@ export class Sessions {
     if (this.bindings.get(agent) !== binding) return
     const register = this.registerTool(agent, binding)
     for (const tool of host.tools(agent, ticket)) register(tool.name, tool.description, tool.schema, tool.execute)
+    for (const [namespace, factory] of this.sourceTools) this.bindSourceTools(agent, binding, namespace, factory)
     if (master) {
       const parent = scopeParentOf(agent)
       const allow = ['skill', 'bash', 'pwsh', 'read', 'read_image', 'job_output', 'job_list', 'job_kill']

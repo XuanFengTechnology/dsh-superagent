@@ -10,4 +10,8 @@ export { defaultPrompts } from './app/prompts.ts'
 export const SOURCE_PROMPT_API = 1
 /** Authenticated conversational agents retain human=false and support the complete request/reply lifecycle. */
 export const SOURCE_PARTICIPANT_API = 1
+/** Trusted Source adapters can bind scoped attachment/communication tools to managed sessions. */
+export const SOURCE_TOOLS_API = 1
+export type { SourceSessionTools } from './sources/host.ts'
+export type { Tool } from './app/tools/tool.ts'
 export * from './core/index.ts'

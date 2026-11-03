@@ -27,6 +27,7 @@ import { feishuTrigger } from '../src/sources/feishu.ts'
 import { feishuChannel } from '../src/sources/feishu-trigger.ts'
 import { commentTrigger, githubChannel } from '../src/sources/github-trigger.ts'
 import { IM_WORDS } from '../src/infra/text.ts'
+import { z } from 'zod'
 import { observePull, pullOf } from '../src/sources/github-pull.ts'
 import { credentialHelper, workerGitConfig } from '../src/infra/environment.ts'
 import { policyHistory } from '../src/app/settings-history.ts'
@@ -230,6 +231,21 @@ it('includes current authenticated source policy inside complete main and worker
   expect(JSON.stringify(runtime.prompts.current())).not.toContain('Authenticated test identity')
   release()
   expect(sections.get(runtime.masterId)!.text({})).not.toContain(policy)
+})
+
+it('binds trusted source tools to existing and future managed sessions and revokes them on disposal', async () => {
+  const release = runtime.registerSessionTools('fixture', (agent, ticket) => [{ name: 'fixture_attachment', description: 'Read an authorized fixture', schema: z.object({}),
+    execute: async () => ({ session: agent.id, ticket: ticket?.id ?? null }) }])
+  const { sessionId, ticket } = await acceptedTicket()
+  expect(await runTool(runtime.masterId, 'fixture_attachment', {})).toMatchObject({ ticket: null })
+  expect(await runTool(sessionId, 'fixture_attachment', {})).toMatchObject({ ticket: ticket.id })
+  const late = runtime.registerSessionTools('late', () => [{ name: 'late_attachment', description: 'Late fixture', schema: z.object({}), execute: async () => ({ available: true }) }])
+  expect(await runTool(sessionId, 'late_attachment', {})).toEqual({ available: true })
+  expect(() => runtime.registerSessionTools('orchestrator', () => [])).toThrow('namespace')
+  expect(() => runtime.registerSessionTools('bad', () => [{ name: 'orchestrator_reply', description: 'Collision', schema: z.object({}), execute: async () => ({}) }])).toThrow('namespaced')
+  release(); late()
+  await expect(runTool(sessionId, 'fixture_attachment', {})).rejects.toThrow('not registered')
+  await expect(runTool(runtime.masterId, 'late_attachment', {})).rejects.toThrow('not registered')
 })
 
 it('relays an explicit member mention as a candidate and creates the ticket, acknowledgement, subscription and worker on accept', async () => {
@@ -1378,7 +1394,7 @@ it('keeps replies and acknowledgements to an IM conversation within the IM limit
   await expect(runTool(runtime.masterId, 'orchestrator_reply', { ticket_id: ticket.id, purpose: 'result', text: long })).rejects.toThrow(`maximum is ${IM_WORDS}`)
   const follow = feishu('3', '还有一个问题', { mentions: [], root_id: trigger.meta.messageId as string, sender_id: MEMBER })
   await receive(follow)
-  await expect(runTool(sessionId, 'orchestrator_ack', { trigger_id: follow.id, text: long })).rejects.toThrow(`at most ${IM_WORDS} words`)
+  await expect(runTool(sessionId, 'orchestrator_ack', { trigger_id: follow.id, text: long })).rejects.toThrow(`maximum is ${IM_WORDS}`)
 })
 
 it('refuses a second process on the same state directory before it opens the database, so it migrates nothing', () => {

@@ -1,7 +1,6 @@
 /** Executor Session tools for reading ticket context, acknowledging requests, managing threads, handing back out-of-scope triggers, and reporting status. */
 import { z } from 'zod'
 import { liveTicket, type EngineForExecutor, type Ticket } from '../../core/index.ts'
-import { IM_WORDS } from '../../infra/text.ts'
 import { claimPull, readPull } from '../../sources/github-pull.ts'
 import type { SourceContext } from '../../sources/host.ts'
 import { readResource, type ResourceHost } from '../resources.ts'
@@ -30,7 +29,7 @@ export function executorTools(host: ExecutorToolsHost, ticket: Ticket): Tool[] {
       description: 'Acknowledge one original participant request before substantial work, as the replies section says; it posts as a reply to that message.',
       schema: z.object({
         trigger_id: z.string(),
-        text: AcknowledgementSchema.describe(`At most ${IM_WORDS} words; Markdown is supported.`),
+        text: AcknowledgementSchema.describe(`Task-specific acknowledgement; Markdown is supported.`),
       }).strict(),
       execute: async args => {
         const reply = host.engine.reply({ purpose: 'acknowledgement', ticketId, triggerId: args.trigger_id, text: args.text })

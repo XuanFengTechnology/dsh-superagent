@@ -27,6 +27,16 @@ it('holds every message while processing is paused, and sends it once processing
   expect(JSON.stringify(lark.mock.calls)).toContain('已合并。')
 })
 
+it('delivers long replies and acknowledgements unchanged for sources without the legacy Feishu word limit', async () => {
+  const sent: OutboundMessage[] = []
+  h.runtime.sources.register({ kind: 'probe', title: { zh: '', en: '' }, description: { zh: '', en: '' }, health: [], schema: z.object({}), fields: [],
+    channel: { send: async (_host, message) => { sent.push(message); return 'sent' }, link: () => ({ url: '', label: { zh: '', en: '' } }) } })
+  const text = Array.from({ length: 450 }, (_, i) => `word${i}`).join(' ')
+  for (const kind of ['reply', 'acknowledgement'] as const) h.runtime.outbox.send({ id: `long-${kind}`, channel: { source: 'probe', thread: 'dm', address: {} }, text, kind })
+  await h.runtime.sendReplies()
+  expect(sent.map(message => message.text)).toEqual([text, text])
+})
+
 it('keeps a message for a Source that is not installed waiting, and sends it once the Source\'s kind registers', async () => {
   const sent: OutboundMessage[] = []
   const probe: SourceKind<Record<string, never>> = { kind: 'probe', title: { zh: '探针', en: 'Probe' }, description: { zh: '', en: '' }, health: [],

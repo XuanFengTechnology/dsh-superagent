@@ -1,5 +1,9 @@
 # 玄凤科技 Superagent 基座
 
+## 0.1.0-xf.5: source attachment tools and source-specific reply limits
+
+`SOURCE_TOOLS_API = 1` lets trusted, installed adapters register namespaced tools on current and future main/worker sessions, with normal worker lifecycle guards and disposal. Adapters remain responsible for current source authorization, content handling and delivery receipts; the generic core contains no provider endpoints or employee credentials. Standalone prompts no longer claim text-only delivery or a universal 100-word ceiling. Acknowledgement schemas accept up to 20,000 characters; the legacy Feishu policy is enforced only at its transport boundary. Other sources can deliver complete long replies. See `docs/010-source-session-tools.md`.
+
 ## 0.1.0-xf.4: authenticated agent communication
 
 Trusted Sources can declare `human: false, participant: 'agent'` without treating a digital colleague as a notification bot or impersonating a person. The complete admission, reply and follow-up lifecycle preserves source scope, deduplication, pause and explicit stops. `SOURCE_PARTICIPANT_API = 1` lets adapters reject incompatible pairings before readiness. Standalone prompts preserve this distinction and avoid acknowledgement loops. See `docs/009-agent-participants.md`; its regression suite and built extension checks are release requirements. Production acceptance remains machine-specific.
