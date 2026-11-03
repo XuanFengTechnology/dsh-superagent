@@ -59,7 +59,7 @@ export const resourceGrammar = (executor: boolean): string => RESOURCES.filter(r
 export interface ResourceHost {
   readonly store: Pick<Store, 'get' | 'settings' | 'triggers' | 'tickets' | 'threads' | 'read' | 'decisions' | 'replyStatus'>
   readonly pages: TextCache
-  readonly prompts: Pick<Prompts, 'current' | 'version' | 'history' | 'skills' | 'defaultChanged'>
+  readonly prompts: Pick<Prompts, 'profile' | 'current' | 'version' | 'history' | 'skills' | 'defaultChanged'>
   readonly commands: Commands
   readonly masterId: string
   readonly context: Context
@@ -177,8 +177,8 @@ const ROUTES: readonly Route[] = [
     const { host, resource, rest, sessionId, ticketId } = read
     const prompts = host.prompts
     const bound = host.promptVersion(sessionId)
-    const parts = () => Object.fromEntries(Object.entries(builtInParts()).map(([key, part]) => [key, part.text]))
-    const version = rest === 'current' ? bound : rest === 'defaults' && !ticketId ? { revision: 0, config: defaultPrompts(), parts: parts() }
+    const parts = () => Object.fromEntries(Object.entries(builtInParts(prompts.profile)).map(([key, part]) => [key, part.text]))
+    const version = rest === 'current' ? bound : rest === 'defaults' && !ticketId ? { revision: 0, config: defaultPrompts(prompts.profile), parts: parts() }
       : /^\d+$/.test(rest) ? (Number(rest) === 0 && prompts.current().revision === 0 ? prompts.current() : prompts.version(Number(rest))) : undefined
     if (!version || (ticketId && !host.mayRead(sessionId, version.revision))) throw new Error('Unknown or inaccessible prompt version')
     return text({ ...read, resource: rest === 'current' ? `prompts/${version.revision}` : resource }, JSON.stringify(version))

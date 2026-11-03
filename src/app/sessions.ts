@@ -31,6 +31,10 @@ export interface SessionsHost {
   readonly health: HealthEntry
   readonly masterId: string
   readonly lifetime: AbortSignal
+  /** Standalone workers must not inherit a coding-only host persona. */
+  readonly completeWorkerPrompt?: boolean
+  /** Trusted source extensions; resolved afresh on every model request, including complete prompts. */
+  sourceInstructions?(): string
   closing(): boolean
   /** Execution environment variables for `ticket`, rendered into its worker's system prompt. */
   environment(ticket: Ticket): Variable[]
@@ -229,6 +233,16 @@ export class Sessions {
     const ticketId = ticketOfSession(agent.id)
     return ticketId === undefined ? undefined : this.host.store.tickets.get(ticketId)
   }
+  private bindPrompt(agent: Agent, master: boolean, ticket?: Ticket): () => void {
+    const host = this.host
+    // Disable variable interpolation so literal ${{ ... }} expressions in team prompts are preserved.
+    return agent.ctx.systemPrompt.section({ name: 'dsh-superagent-policy', order: 9999, interpolate: false, text: context => {
+      const version = this.promptFor(agent, context.signal !== undefined)
+      const current = ticket && host.store.tickets.get(ticket.id)
+      const composed = host.prompts.compose(version.config, master ? 'orchestrator' : 'worker', current ? host.environment(current) : undefined)
+      return `[dsh-superagent prompt revision ${version.revision}]\n${composed}\n${current ? mandateInstructions(current.mandate, host.completeWorkerPrompt) : ''}\n${host.sourceInstructions?.() ?? ''}`
+    }, ...(master || host.completeWorkerPrompt ? { complete: true } : {}) })
+  }
   private async decorate(agent: Agent): Promise<void> {
     if (this.bindings.has(agent)) return
     const host = this.host
@@ -240,13 +254,7 @@ export class Sessions {
     this.retryHealth.restore(agent.id, agent.session.snapshotEvents())
     if (agent.status === 'idle') this.retryHealth.clear(agent.id)
     this.updateModelHealth()
-    // Disable variable interpolation so literal ${{ ... }} expressions in team prompts are preserved.
-    binding.disposers.push(agent.ctx.systemPrompt.section({ name: 'dsh-superagent-policy', order: 9999, interpolate: false, text: context => {
-      const version = this.promptFor(agent, context.signal !== undefined)
-      const current = ticket && host.store.tickets.get(ticket.id)
-      const composed = host.prompts.compose(version.config, master ? 'orchestrator' : 'worker', current ? host.environment(current) : undefined)
-      return `[dsh-superagent prompt revision ${version.revision}]\n${composed}\n${current ? mandateInstructions(current.mandate) : ''}`
-    }, ...(master ? { complete: true } : {}) }))
+    binding.disposers.push(this.bindPrompt(agent, master, ticket))
     // A recreated skill scope (e.g. after the skills service restarts) starts empty, so reset `binding.skills` before rebinding.
     const skillScope = agent.ctx.inject(['skills'], scope => {
       binding.scope = scope
@@ -311,7 +319,8 @@ export class Sessions {
     }
     const ticketId = parent === undefined ? undefined : ticketOfSession(parent)
     if (ticketId === undefined || !this.host.store.tickets.get(ticketId)) return
-    this.bindings.set(agent, { disposers: this.workOnly(agent, ticketId), subagent: true })
+    this.bindings.set(agent, { disposers: [...this.workOnly(agent, ticketId),
+      ...this.host.completeWorkerPrompt ? [this.bindPrompt(agent, false, this.host.store.tickets.get(ticketId))] : []], subagent: true })
   }
   /** Register the skills of a prompt version in the agent's skill scope, in place of an earlier version's. */
   private bindSkills(binding: SessionBinding, version: PromptVersion): void {

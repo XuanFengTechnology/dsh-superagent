@@ -94,3 +94,9 @@ These apply [000 Philosophy](000-philosophy.md) to the agents:
 - Saves name their base revision. A conflicting save is refused without discarding the draft.
 - Sessions read the latest version on every model request, including later steps in the same turn. Saving does not restart, cancel or wake a Session. The host records the revisions each Session used; an Executor can read any revision it worked under.
 - The deployment sets a total size limit, including overrides. Validation refuses unknown keys, reserved built-in skill names, unknown override parts and missing template placeholders. It never silently truncates text. An override identical to the default is removed so the part follows future defaults.
+
+## Standalone deployments in the maintained fork
+
+With `standalone: true`, the built-in role, dispatch, assessment, work and handoff parts are source-neutral; non-code tasks do not require a repository or PR. Missing business duties are clarified with the authenticated responsible person. Saved custom roles and overrides remain intact, including across restarts. `GET prompts` reports `profile` and the matching defaults and part texts.
+
+Trusted source policies registered through `registerPromptSection` are resolved for every model request and included inside the complete prompt after the saved role instructions. They are not editable role history. A source adapter should use this API instead of a separate system section, which DSH discards when a complete section is active.

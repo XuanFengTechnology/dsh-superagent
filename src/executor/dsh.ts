@@ -88,7 +88,8 @@ export const sourceTrigger = (host: { store: Pick<Store, 'triggers'> }, ticket: 
  * Returns additional system-prompt mandate instructions for a worker beyond the request: for work accepted proactively under
  * rules (`strength === 'inferred'`), restricts authorization to small internal changes within the rule scope; returns `''` for explicit requests.
  */
-export function mandateInstructions(mandate: Pick<Mandate, 'strength'>): string {
+export function mandateInstructions(mandate: Pick<Mandate, 'strength'>, standalone = false): string {
+  if (standalone) return mandate.strength === 'inferred' ? 'This task has limited proactive authorization. Verify the concrete requested outcome and current source permissions against the accepted rules. Do not expand the task or treat discussion as new authority; report a real scope conflict without executing it.' : ''
   return mandate.strength === 'inferred' ? 'This ticket has limited proactive authorization. Independently verify that it is a small change '
     + 'internal to one module within the accepted rule scope. If it requires public-interface or behavior changes, new interaction, product '
     + 'decisions or clarification, stop and report dropped; do not expand scope.' : ''

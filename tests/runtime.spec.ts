@@ -42,7 +42,7 @@ let directory: string
 let controller: { create: ReturnType<typeof vi.fn>; selectModel: ReturnType<typeof vi.fn>; resolveAgent: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn>; prompt: ReturnType<typeof vi.fn>; inspect: ReturnType<typeof vi.fn> }
 type RegisteredTool = { name: string; output: { render: (args: unknown, result: unknown) => unknown }; execute: (args: unknown, execution: { signal: AbortSignal }) => Promise<unknown> }
 let tools: Map<string, Map<string, RegisteredTool>>
-type Section = { name: string; text: (context: { signal?: AbortSignal }) => string; interpolate?: boolean }
+type Section = { name: string; text: (context: { signal?: AbortSignal }) => string; interpolate?: boolean; complete?: boolean }
 let sections: Map<string, Section>
 type Guard = (execution?: { name: string; arguments: unknown }) => string | undefined
 let guards: Map<string, Guard>
@@ -215,6 +215,22 @@ beforeEach(async () => {
   deliveries.mockClear()
 })
 afterEach(async () => { expect(controller.prompt).not.toHaveBeenCalled(); await runtime?.stop(); vi.restoreAllMocks(); rmSync(directory, { recursive: true, force: true }) })
+
+it('includes current authenticated source policy inside complete main and worker prompts without saving it into role history', async () => {
+  let policy = 'Authenticated test identity A; mandatory conduct.'
+  const release = runtime.registerPromptSection('fixture:employee', () => policy)
+  const { sessionId } = await acceptedTicket()
+  expect(sections.get(runtime.masterId)!.complete).toBe(true)
+  for (const id of [runtime.masterId, sessionId]) expect(sections.get(id)!.text({})).toContain(policy)
+  policy = 'Authenticated test identity B; refreshed conduct.'
+  for (const id of [runtime.masterId, sessionId]) {
+    expect(sections.get(id)!.text({})).toContain(policy)
+    expect(sections.get(id)!.text({})).not.toContain('identity A')
+  }
+  expect(JSON.stringify(runtime.prompts.current())).not.toContain('Authenticated test identity')
+  release()
+  expect(sections.get(runtime.masterId)!.text({})).not.toContain(policy)
+})
 
 it('relays an explicit member mention as a candidate and creates the ticket, acknowledgement, subscription and worker on accept', async () => {
   const { trigger, ticket, sessionId } = await acceptedTicket()

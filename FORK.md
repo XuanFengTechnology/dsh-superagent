@@ -21,3 +21,11 @@ Daily upstream checks compare `upstream.json` with the official commit and DSH l
 Windows acceptance on 2026-11-01 used the installed official DSH desktop CLI 0.2.1-rc.5 with two temporary private DSH homes pointing to the same plugin installation. Both orchestrators became ready, used distinct databases and sessions, and pausing/stopping the first left the second ready. No real employee or model task was used; this validates host mounting and process/state separation, not business execution or enrollment.
 
 Before updating a running employee, wait for an idle maintenance boundary, back up its database, and retain its private identity/history. A database migration may make the old binary incompatible; restore the pre-upgrade backup when required. An intentional stop or unresolved tool result must never be bypassed by an updater.
+
+## 0.1.0-xf.3: source-neutral standalone roles
+
+Standalone mode now selects neutral task/role defaults in both main and worker sessions, rather than inheriting the repository-only mandate, coding-only proactive scope or mandatory pull-request delivery. It does not automatically assign a manager or other business job. Existing saved team sections, skills and explicit part overrides remain unchanged; default inherited parts change with the selected profile. Default GitHub/Feishu skills are omitted in standalone mode. Repository mode retains its upstream behavior.
+
+The stable extension exports `SOURCE_PROMPT_API = 1`. Installed trusted Source plugins use `ctx.orchestrator.registerPromptSection(name, render)` to supply current authenticated identity and conduct on every model request, including complete prompts. Registration returns a disposer; missing/failed policy renderers fail closed. These dynamic policies are not saved into editable prompt history. Standalone workers and their subagents use a complete neutral prompt to avoid inheriting the coding-only DSH persona. Source adapters still enforce actual data and action permissions.
+
+This is a core/plugin release, not an automatic upgrade of running employees. An upgraded source adapter must validate the API before enrolling a new identity, preserve existing role/configuration and cursor state, and use the external operator flow for role or access changes.

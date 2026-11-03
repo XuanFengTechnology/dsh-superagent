@@ -6,4 +6,6 @@ export { record, family } from './kv.ts'
 export { Store } from './app/store.ts'
 export { SettingsSchema } from './policy.ts'
 export { defaultPrompts } from './app/prompts.ts'
+/** Standalone role defaults plus trusted source policy composition in complete session prompts. */
+export const SOURCE_PROMPT_API = 1
 export * from './core/index.ts'
